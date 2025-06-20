@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球央行模擬器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .news-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+            z-index: 1000;
+            min-width: 400px;
+            max-width: 80vw;
+            display: none;
+        }
+
+        .news-alert.quarter-report {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+
+        .news-alert.warning {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .news-alert.global-event {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+
+        .news-alert.economic-alert {
+            background: linear-gradient(45deg, #e67e22, #d35400);
+        }
+
+        .news-alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .news-alert-title {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .news-alert-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .international-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .country-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+
+        .country-panel.current-country {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #d5f4e6, #ffffff);
+        }
+
+        .country-panel.china {
+            border-left-color: #e74c3c;
+        }
+
+        .country-panel.japan {
+            border-left-color: #9b59b6;
+        }
+
+        .country-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .country-flag {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .country-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .country-status {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: auto;
+        }
+
+        .mini-indicators {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mini-indicators.usa-indicators {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+        }
+
+        .mini-indicators.usa-indicators .mini-indicator:nth-child(5) {
+            grid-column: 1 / 3;
+        }
+
+        .mini-indicator {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .mini-indicator.good {
+            background: #d5f4e6;
+            border: 1px solid #27ae60;
+        }
+
+        .mini-indicator.warning {
+            background: #fef9e7;
+            border: 1px solid #f39c12;
+        }
+
+        .mini-indicator.danger {
+            background: #fadbd8;
+            border: 1px solid #e74c3c;
+        }
+
+        .mini-indicator.classified {
+            background: #ecf0f1;
+            border: 1px solid #95a5a6;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .mini-indicator-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .mini-indicator-value {
+            font-size: 1em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .quarter-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(45deg, #e8f4f8, #d5f4e6);
+            border-radius: 10px;
+            border-left: 5px solid #27ae60;
+        }
+
+        .quarter-info h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            border-radius: 5px;
+            transition: width 0.1s linear;
+            width: 0%;
+        }
+
+        .time-display {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+        }
+
+        .panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .skill-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #e74c3c;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .skill-card.ready {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #d5f4e6, #f8f9fa);
+        }
+
+        .skill-card.cooldown {
+            border-left-color: #f39c12;
+            background: linear-gradient(135deg, #fef9e7, #f8f9fa);
+        }
+
+        .skill-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .skill-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .skill-details {
+            flex: 1;
+        }
+
+        .skill-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .skill-cooldown {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .skill-cooldown.ready {
+            color: #27ae60;
+        }
+
+        .skill-cooldown.on-cooldown {
+            color: #e74c3c;
+        }
+
+        .skill-description {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .skill-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .target-selector {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9em;
+        }
+
+        .policy-tools {
+            display: grid;
+            gap: 15px;
+        }
+
+        .tool-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .tool-group h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .tool-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .tool-controls label {
+            min-width: 100px;
+            font-weight: 500;
+        }
+
+        .tool-controls input[type="range"] {
+            flex: 1;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .tool-controls .value-display {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-skill {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-skill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-fiscal {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            margin: 5px;
+            flex: 1;
+        }
+
+        .btn-fiscal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-fiscal:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-fiscal.decrease {
+            background: linear-gradient(45deg, #e67e22, #f39c12);
+        }
+
+        .btn-fiscal.decrease:hover {
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.3);
+        }
+
+        .fiscal-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .fiscal-status {
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .btn-emergency {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            margin-top: 10px;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-emergency:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-emergency:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .events-log {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .events-log h3 {
+            margin-bottom: 15px;
+            color: #ecf0f1;
+        }
+
+        .event-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+            animation: slideIn 0.3s ease;
+        }
+
+        .event-item.quarter-end {
+            border-left-color: #f39c12;
+            background: rgba(243, 156, 18, 0.2);
+        }
+
+        .event-item.policy-change {
+            border-left-color: #9b59b6;
+            background: rgba(155, 89, 182, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .country-selection {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .country-selection h1 {
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 2.8em;
+        }
+
+        .country-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .country-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .country-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .country-card.selected {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #d5f4e6, #ffffff);
+        }
+
+        .country-flag-large {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .country-card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .country-description {
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .country-description p {
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .skill-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .skill-preview h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .skill-preview p {
+            font-size: 0.9em;
+            color: #555;
+            margin: 0;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-start:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-start:not(:disabled):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.4);
+        }
+
+        .game-content {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .international-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 國家選擇畫面 -->
+        <div class="country-selection" id="countrySelection">
+            <h1>🌍 選擇你要扮演的國家</h1>
+            <div class="country-cards">
+                <div class="country-card" data-country="USA">
+                    <div class="country-flag-large">🇺🇸</div>
+                    <h2>美國</h2>
+                    <div class="country-description">
+                        <p><strong>特色：</strong>全球霸主，政策影響全世界</p>
+                        <p><strong>優勢：</strong>美元霸權，政策傳導力強</p>
+                        <p><strong>挑戰：</strong>全球責任重大，政策失誤影響廣</p>
+                        <div class="skill-preview">
+                            <h4>⚔️ 專屬技能：經濟制裁</h4>
+                            <p>對目標國家實施嚴厲制裁，造成持續2季的顯著負面影響，但有35%機率反噬自身</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="country-card" data-country="CHN">
+                    <div class="country-flag-large">🇨🇳</div>
+                    <h2>中國</h2>
+                    <div class="country-description">
+                        <p><strong>特色：</strong>世界工廠，高速發展中經濟體</p>
+                        <p><strong>優勢：</strong>政策執行力強，成長潛力大</p>
+                        <p><strong>挑戦：</strong>結構轉型壓力，外部依賴度高</p>
+                        <div class="skill-preview">
+                            <h4>🚀 專屬技能：科技突破</h4>
+                            <p>集中力量辦大事，實現重大科技突破，大幅提升GDP成長和民眾信心，無明顯副作用</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="country-card" data-country="JPN">
+                    <div class="country-flag-large">🇯🇵</div>
+                    <h2>日本</h2>
+                    <div class="country-description">
+                        <p><strong>特色：</strong>成熟發達經濟體，技術先進</p>
+                        <p><strong>優勢：</strong>貨幣政策經驗豐富，技術領先</p>
+                        <p><strong>挑戰：</strong>人口老化，通縮風險</p>
+                        <div class="skill-preview">
+                            <h4>🎯 專屬技能：改善老人就業問題</h4>
+                            <p>透過數位化培訓和彈性工作制度，提升高齡勞動參與率，解決通縮和信心問題</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-start" id="startGameBtn" disabled>開始遊戲</button>
+        </div>
+
+        <!-- 遊戲主界面 -->
+        <div class="game-content" id="gameContent">
+            <!-- 快訊彈窗 -->
+            <div class="news-alert" id="newsAlert">
+                <div class="news-alert-header">
+                    <span class="news-alert-title" id="newsAlertTitle">緊急快訊</span>
+                    <button class="news-alert-close" id="closeAlertBtn">×</button>
+                </div>
+                <div class="news-alert-content" id="newsAlertContent">
+                    快訊內容
+                </div>
+            </div>
+
+            <h1 id="gameTitle">🏦 全球央行模擬器</h1>
+            
+            <!-- 國際經濟儀表板 -->
+            <div class="international-dashboard" id="internationalDashboard">
+                <!-- 動態生成國家面板 -->
+            </div>
+            
+            <div class="quarter-info">
+                <h3>當前季度：第 <span id="currentQuarter">1</span> 季</h3>
+                <p>調整政策工具即時影響經濟指標變化...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="time-display">
+                    距離季度結束：<span id="timeRemaining">0:30</span>
+                </div>
+            </div>
+
+            <div class="game-board">
+                <!-- 左側面板：國家技能系統 -->
+                <div class="panel">
+                    <h2>🎯 國家技能系統</h2>
+                    
+                    <div class="skill-card" id="skillCard">
+                        <div class="skill-header">
+                            <span class="skill-icon" id="skillIcon">⚔️</span>
+                            <div class="skill-details">
+                                <div class="skill-name" id="skillName">經濟制裁</div>
+                                <div class="skill-cooldown" id="skillCooldown">準備就緒</div>
+                            </div>
+                        </div>
+                        <div class="skill-description" id="skillDescription">
+                            對指定國家實施嚴厲經濟制裁，造成持續2季的顯著負面影響，但有35%機率反噬自身
+                        </div>
+                        <div class="skill-controls" id="skillControls">
+                            <select id="targetCountry" class="target-selector">
+                                <option value="CHN">🇨🇳 中國</option>
+                                <option value="JPN">🇯🇵 日本</option>
+                            </select>
+                            <button class="btn-skill" id="useSkillBtn">發動技能</button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" id="implementBtn">實施政策</button>
+                        <button class="btn-danger" id="pauseBtn">暫停遊戲</button>
+                    </div>
+                </div>
+
+                <!-- 右側面板：貨幣政策工具 -->
+                <div class="panel">
+                    <h2>🔧 貨幣政策工具</h2>
+                    
+                    <div class="policy-tools">
+                        <div class="tool-group">
+                            <h3>利率政策</h3>
+                            <div class="tool-controls">
+                                <label>基準利率</label>
+                                <input type="range" id="interestRate" min="0" max="10" step="0.25" value="2.5">
+                                <span class="value-display" id="interestRateValue">2.5%</span>
+                            </div>
+                        </div>
+
+                        <div class="tool-group">
+                            <h3>貨幣供給</h3>
+                            <div class="tool-controls">
+                                <label>存款準備金率</label>
+                                <input type="range" id="reserveRatio" min="5" max="25" step="1" value="10">
+                                <span class="value-display" id="reserveRatioValue">10%</span>
+                            </div>
+                        </div>
+
+                        <div class="tool-group">
+                            <h3>財政政策</h3>
+                            <div class="fiscal-controls">
+                                <button class="btn-fiscal" id="increaseSpendingBtn">📈 增加政府支出</button>
+                                <button class="btn-fiscal decrease" id="decreaseSpendingBtn">📉 減少政府支出</button>
+                            </div>
+                            <div class="fiscal-status">
+                                當前支出水平: <span id="spendingLevelDisplay">中性</span>
+                            </div>
+                            <button class="btn-emergency" id="emergencyBtn" style="display: none;">🚨 緊急財政刺激</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 事件日誌 -->
+            <div class="events-log">
+                <h3>📢 央行公告與市場動態</h3>
+                <div id="eventsContainer">
+                    <div class="event-item">
+                        <strong>[季度1]</strong> 歡迎來到全球央行模擬器！調整政策工具即時影響經濟指標變化。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局變量
+        let gameState;
+        let updateTimer;
+        let selectedCountry = null;
+
+        // 國家配置
+        const countryConfigs = {
+            USA: {
+                name: '美國',
+                flag: '🇺🇸',
+                skill: {
+                    name: '經濟制裁',
+                    icon: '⚔️',
+                    description: '對指定國家實施嚴厲經濟制裁，造成持續2季的顯著負面影響，但有35%機率反噬自身',
+                    cooldown: 4,
+                    hasTarget: true
+                },
+                indicators: ['gdp', 'inflation', 'unemployment', 'confidence', 'deficit'],
+                startingValues: {
+                    gdp: 2.5, inflation: 3.2, unemployment: 5.1, 
+                    confidence: 80, fiscalDeficit: 2.1
+                }
+            },
+            CHN: {
+                name: '中國',
+                flag: '🇨🇳',
+                skill: {
+                    name: '科技突破',
+                    icon: '🚀',
+                    description: '集中力量辦大事，實現重大科技突破，大幅提升GDP成長，帶動全球技術進步',
+                    cooldown: 5,
+                    hasTarget: false
+                },
+                indicators: ['gdp', 'inflation', 'unemployment', 'confidence', 'deficit'],
+                startingValues: {
+                    gdp: 5.2, inflation: 2.1, unemployment: 4.2, 
+                    confidence: 80, fiscalDeficit: 1.8
+                }
+            },
+            JPN: {
+                name: '日本',
+                flag: '🇯🇵',
+                skill: {
+                    name: '改善老人就業問題',
+                    icon: '👴',
+                    description: '透過數位化培訓和彈性工作制度，提升高齡勞動參與率，解決通縮和信心問題',
+                    cooldown: 5,
+                    hasTarget: false
+                },
+                indicators: ['gdp', 'inflation', 'unemployment', 'confidence', 'deficit'],
+                startingValues: {
+                    gdp: 1.8, inflation: 1.2, unemployment: 2.8, 
+                    confidence: 70, fiscalDeficit: 4.0
+                }
+            }
+        };
+
+        // ===== 國家選擇功能 =====
+        function setupCountrySelection() {
+            const countryCards = document.querySelectorAll('.country-card');
+            const startBtn = document.getElementById('startGameBtn');
+
+            countryCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // 移除所有選中狀態
+                    countryCards.forEach(c => c.classList.remove('selected'));
+                    
+                    // 添加選中狀態
+                    this.classList.add('selected');
+                    selectedCountry = this.getAttribute('data-country');
+                    
+                    // 啟用開始按鈕
+                    startBtn.disabled = false;
+                });
+            });
+
+            startBtn.addEventListener('click', function() {
+                if (selectedCountry) {
+                    startGame();
+                }
+            });
+        }
+
+        function startGame() {
+            // 隱藏選擇界面，顯示遊戲界面
+            document.getElementById('countrySelection').style.display = 'none';
+            document.getElementById('gameContent').style.display = 'block';
+            
+            // 初始化遊戲
+            initGame();
+        }
+
+        // ===== 核心遊戲功能函數 =====
+        function initGame() {
+            console.log('🎮 開始初始化遊戲...');
+            
+            const config = countryConfigs[selectedCountry];
+            
+            // 初始化遊戲狀態
+            gameState = {
+                currentQuarter: 1,
+                quarterProgress: 0,
+                quarterDuration: 30000, // 30秒一季
+                isGamePaused: false,
+                lastUpdateTime: Date.now(),
+                recessionRisk: false,
+                playerCountry: selectedCountry,
+                countries: {}
+            };
+
+            // 初始化所有國家
+            Object.keys(countryConfigs).forEach(countryCode => {
+                const countryConfig = countryConfigs[countryCode];
+                gameState.countries[countryCode] = {
+                    name: countryConfig.name,
+                    ...countryConfig.startingValues,
+                    govSpendingLevel: 0,
+                    interestRate: countryCode === 'USA' ? 2.5 : countryCode === 'CHN' ? 3.8 : 0.1,
+                    reserveRatio: 10,
+                    gdpTrend: 0,
+                    inflationTrend: 0,
+                    unemploymentTrend: 0,
+                    skillCooldown: 0,
+                    policyCooldown: 0,
+                    previousCrisisLevel: 'stable',
+                    emergencyUsed: false
+                };
+            });
+
+            updateCountryDisplay();
+            setupEventListeners();
+            updateInternationalDashboard();
+            updateSkillDisplay();
+            updatePolicyCooldownDisplay();
+            updateSpendingLevelDisplay();
+            updateEmergencyToolDisplay();
+            
+            // 啟動遊戲循環
+            updateTimer = setInterval(gameLoop, 100);
+            
+            // 歡迎訊息
+            setTimeout(() => {
+                showNewsAlert('遊戲開始', `🎮 歡迎來到全球央行模擬器！你現在是${config.name}央行行長！`, 'quarter-report');
+            }, 1000);
+            
+            console.log('✅ 遊戲初始化完成！');
+        }
+
+        function gameLoop() {
+            if (!gameState.isGamePaused) {
+                updateQuarterProgress();
+                updateEconomicIndicators();
+                updatePolicyCooldown();
+            }
+        }
+
+        function setupEventListeners() {
+            console.log('📡 設置事件監聽器...');
+            
+            // 滑塊事件
+            const interestRateSlider = document.getElementById('interestRate');
+            if (interestRateSlider) {
+                interestRateSlider.addEventListener('input', function() {
+                    document.getElementById('interestRateValue').textContent = this.value + '%';
+                });
+            }
+
+            const reserveRatioSlider = document.getElementById('reserveRatio');
+            if (reserveRatioSlider) {
+                reserveRatioSlider.addEventListener('input', function() {
+                    document.getElementById('reserveRatioValue').textContent = this.value + '%';
+                });
+            }
+
+            // 按鈕事件
+            document.getElementById('implementBtn').addEventListener('click', implementPolicy);
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            document.getElementById('useSkillBtn').addEventListener('click', useSkill);
+            document.getElementById('closeAlertBtn').addEventListener('click', closeNewsAlert);
+            document.getElementById('increaseSpendingBtn').addEventListener('click', increaseGovernmentSpending);
+            document.getElementById('decreaseSpendingBtn').addEventListener('click', decreaseGovernmentSpending);
+            document.getElementById('emergencyBtn').addEventListener('click', emergencyFiscalStimulus);
+            
+            console.log('✅ 事件監聽器設置完成');
+        }
+
+        // ===== 技能系統 =====
+        function useSkill() {
+            const playerCountry = gameState.countries[selectedCountry];
+            
+            if (playerCountry.skillCooldown > 0) {
+                showNewsAlert('技能冷卻', `技能還在冷卻中，請等待 ${playerCountry.skillCooldown} 季`, 'warning');
+                return;
+            }
+            
+            const config = countryConfigs[selectedCountry];
+            
+            // 根據國家執行不同技能
+            switch(selectedCountry) {
+                case 'USA':
+                    executeUSASkill();
+                    break;
+                case 'CHN':
+                    executeCHNSkill();
+                    break;
+                case 'JPN':
+                    executeJPNSkill();
+                    break;
+            }
+            
+            playerCountry.skillCooldown = config.skill.cooldown;
+            updateSkillDisplay();
+        }
+
+        function executeUSASkill() {
+            const usa = gameState.countries['USA'];
+            const targetCountryCode = document.getElementById('targetCountry').value;
+            const targetCountry = gameState.countries[targetCountryCode];
+            
+            // 對目標國家的強化影響（持續2季）
+            targetCountry.gdpTrend -= 3.0;
+            targetCountry.inflationTrend += 2.0;
+            targetCountry.unemploymentTrend += 1.5;
+            targetCountry.confidence -= 15;
+            
+            // 添加制裁狀態標記（持續2季）
+            targetCountry.sanctionDuration = 2;
+            targetCountry.sanctionEffect = {
+                gdpTrend: -1.5,
+                inflationTrend: 1.0,
+                unemploymentTrend: 0.8
+            };
+            
+            // 35%機率反噬
+            const hasBacklash = Math.random() < 0.35;
+            
+            if (hasBacklash) {
+                usa.inflationTrend += 0.8;
+                usa.gdpTrend -= 0.5;
+                usa.confidence -= 3;
+                
+                showNewsAlert('制裁反噬', `🔥 經濟制裁對美國經濟造成反噬！國內通膨上升，經濟受損`, 'warning');
+                addEvent(`[技能反噬] 美國對${targetCountry.name}實施制裁，但國內經濟也受到衝擊`, 'policy-change');
+            } else {
+                usa.confidence += 2;
+                
+                showNewsAlert('制裁成功', `⚔️ 美國成功制裁${targetCountry.name}，國內民眾支持強硬態度`, 'economic-alert');
+                addEvent(`[技能成功] 美國對${targetCountry.name}實施嚴厲制裁，成功避免國內重大損失`, 'policy-change');
+            }
+            
+            showNewsAlert('經濟制裁', `🇺🇸 美國對${targetCountry.name}實施全面經濟制裁！`, 'economic-alert');
+        }
+
+        function executeCHNSkill() {
+            const chn = gameState.countries['CHN'];
+            
+            // 立即效果
+            chn.gdp += 2.5;
+            chn.unemployment -= 1.0;
+            
+            // 持續趨勢效果
+            chn.gdpTrend += 2.0;
+            chn.unemploymentTrend -= 0.8;
+            chn.inflationTrend += 0.3; // 輕微通膨壓力
+            
+            // 全球正面溢出效應
+            for (let code of ['USA', 'JPN']) {
+                if (code !== selectedCountry) {
+                    gameState.countries[code].gdpTrend += 0.3;
+                    gameState.countries[code].confidence += 3;
+                }
+            }
+            
+            showNewsAlert('科技突破', `🚀 中國實現重大科技突破！新興產業爆發式發展`, 'quarter-report');
+            addEvent(`[科技突破] 中國集中力量實現關鍵技術突破，GDP大幅提升`, 'policy-change');
+        }
+
+        function executeJPNSkill() {
+            const jpn = gameState.countries['JPN'];
+            
+            // 立即效果（增強）
+            jpn.inflation += 1.8;     // 從1.2提高到1.8，對抗通縮
+            jpn.confidence += 25;     // 從18提高到25，大幅提升社會信心
+            jpn.gdp += 1.2;          // 從0.8提高到1.2，更顯著的經濟提升
+            jpn.unemployment -= 0.8;  // 從0.5提高到0.8，就業改善
+            jpn.fiscalDeficit += 0.8; // 改革成本維持不變
+            
+            // 持續趨勢效果（增強）
+            jpn.inflationTrend += 1.2; // 從0.8提高到1.2
+            jpn.gdpTrend += 0.8;      // 從0.5提高到0.8
+            
+            // 特殊效果：3季內政策效果翻倍
+            jpn.policyBoostDuration = 3;
+            
+            showNewsAlert('就業改革', `👴 日本推動高齡就業改革！通縮壓力大幅緩解，社會信心空前提升`, 'quarter-report');
+            addEvent(`[改善老人就業問題] 日本推動數位化培訓，高齡勞動參與率大幅提升，政策效果增強3季`, 'policy-change');
+        }
+
+        // ===== 制裁效果持續系統 =====
+        function updateSanctionEffects() {
+            for (let countryCode in gameState.countries) {
+                const country = gameState.countries[countryCode];
+                
+                if (country.sanctionDuration > 0) {
+                    // 應用制裁效果
+                    country.gdpTrend += country.sanctionEffect.gdpTrend;
+                    country.inflationTrend += country.sanctionEffect.inflationTrend;
+                    country.unemploymentTrend += country.sanctionEffect.unemploymentTrend;
+                    
+                    country.sanctionDuration--;
+                    
+                    if (country.sanctionDuration === 0) {
+                        addEvent(`[制裁結束] ${country.name}的制裁效果逐漸消退`, 'quarter-end');
+                        delete country.sanctionEffect;
+                    }
+                }
+            }
+        }
+
+        // ===== 界面更新功能 =====
+        function updateCountryDisplay() {
+            const config = countryConfigs[selectedCountry];
+            
+            // 更新標題
+            document.getElementById('gameTitle').innerHTML = `🏦 全球央行模擬器 - ${config.name}`;
+            
+            // 動態生成國際經濟儀表板
+            generateInternationalDashboard();
+            
+            // 更新當前國家指標
+            updateCurrentCountryIndicators();
+            
+            // 更新技能顯示
+            updateSkillDisplay();
+        }
+
+        function generateInternationalDashboard() {
+            const dashboard = document.getElementById('internationalDashboard');
+            dashboard.innerHTML = '';
+            
+            // 獲取所有國家代碼並按選中國家排序（選中國家排第一）
+            const allCountries = Object.keys(countryConfigs);
+            const sortedCountries = [selectedCountry, ...allCountries.filter(code => code !== selectedCountry)];
+            
+            sortedCountries.forEach((countryCode, index) => {
+                const config = countryConfigs[countryCode];
+                const country = gameState.countries[countryCode];
+                const isPlayer = countryCode === selectedCountry;
+                
+                const panelDiv = document.createElement('div');
+                panelDiv.className = `country-panel ${isPlayer ? 'current-country' : countryCode.toLowerCase()}`;
+                panelDiv.id = `${countryCode.toLowerCase()}CountryPanel`;
+                
+                // 國家頭部
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'country-header';
+                headerDiv.innerHTML = `
+                    <span class="country-flag">${config.flag}</span>
+                    <span class="country-name">${config.name}</span>
+                    <span class="country-status">${isPlayer ? '你控制' : 'AI控制'}</span>
+                `;
+                
+                // 指標區域
+                const indicatorsDiv = document.createElement('div');
+                indicatorsDiv.className = isPlayer ? 'mini-indicators usa-indicators' : 'mini-indicators';
+                indicatorsDiv.id = `${countryCode.toLowerCase()}CountryIndicators`;
+                
+                if (isPlayer) {
+                    // 玩家國家顯示所有5個指標
+                    const allIndicators = ['gdp', 'inflation', 'unemployment', 'confidence', 'deficit'];
+                    allIndicators.forEach(indicator => {
+                        const indicatorDiv = document.createElement('div');
+                        indicatorDiv.className = 'mini-indicator';
+                        indicatorDiv.id = `current-${indicator}-mini`;
+                        
+                        let label, value;
+                        switch(indicator) {
+                            case 'gdp':
+                                label = 'GDP成長率';
+                                value = country.gdp.toFixed(1) + '%';
+                                break;
+                            case 'inflation':
+                                label = '通膨率';
+                                value = country.inflation.toFixed(1) + '%';
+                                break;
+                            case 'unemployment':
+                                label = '失業率';
+                                value = country.unemployment.toFixed(1) + '%';
+                                break;
+                            case 'confidence':
+                                label = '民眾信心';
+                                value = country.confidence.toFixed(0);
+                                break;
+                            case 'deficit':
+                                label = '財政赤字';
+                                value = country.fiscalDeficit.toFixed(1) + '%';
+                                break;
+                        }
+                        
+                        indicatorDiv.innerHTML = `
+                            <div class="mini-indicator-label">${label}</div>
+                            <div class="mini-indicator-value" id="current-${indicator}-value">${value}</div>
+                        `;
+                        
+                        indicatorsDiv.appendChild(indicatorDiv);
+                    });
+                    
+                    // 財政赤字指標跨兩列顯示
+                    const deficitIndicator = indicatorsDiv.querySelector('#current-deficit-mini');
+                    if (deficitIndicator) {
+                        deficitIndicator.style.gridColumn = '1 / 3';
+                    }
+                } else {
+                    // AI國家只顯示部分指標
+                    const publicIndicators = ['gdp', 'inflation', 'unemployment', 'confidence'];
+                    publicIndicators.forEach(indicator => {
+                        const indicatorDiv = document.createElement('div');
+                        const isClassified = (indicator === 'unemployment' || indicator === 'confidence');
+                        indicatorDiv.className = isClassified ? 'mini-indicator classified' : 'mini-indicator';
+                        indicatorDiv.id = `${countryCode.toLowerCase()}-${indicator}-mini`;
+                        
+                        let label, value;
+                        switch(indicator) {
+                            case 'gdp':
+                                label = 'GDP成長率';
+                                value = country.gdp.toFixed(1) + '%';
+                                break;
+                            case 'inflation':
+                                label = '通膨率';
+                                value = country.inflation.toFixed(1) + '%';
+                                break;
+                            case 'unemployment':
+                                label = '失業率';
+                                value = '機密';
+                                break;
+                            case 'confidence':
+                                label = '民眾信心';
+                                value = '機密';
+                                break;
+                        }
+                        
+                        indicatorDiv.innerHTML = `
+                            <div class="mini-indicator-label">${label}</div>
+                            <div class="mini-indicator-value" id="${countryCode.toLowerCase()}-${indicator}-value-mini">${value}</div>
+                        `;
+                        
+                        indicatorsDiv.appendChild(indicatorDiv);
+                    });
+                }
+                
+                panelDiv.appendChild(headerDiv);
+                panelDiv.appendChild(indicatorsDiv);
+                dashboard.appendChild(panelDiv);
+            });
+        }
+
+        function updateCurrentCountryIndicators() {
+            // 這個函數現在由 generateInternationalDashboard 處理
+            // 保留空函數以避免錯誤
+        }
+
+        function updateCurrentCountryIndicatorColors() {
+            const country = gameState.countries[selectedCountry];
+            
+            // GDP指標顏色
+            const gdpElement = document.getElementById('current-gdp-mini');
+            if (gdpElement) {
+                if (country.gdp >= 3) {
+                    gdpElement.className = 'mini-indicator good';
+                } else if (country.gdp >= 1) {
+                    gdpElement.className = 'mini-indicator warning';
+                } else {
+                    gdpElement.className = 'mini-indicator danger';
+                }
+            }
+
+            // 通膨指標顏色
+            const inflationElement = document.getElementById('current-inflation-mini');
+            if (inflationElement) {
+                if (country.inflation >= 1.5 && country.inflation <= 3.5) {
+                    inflationElement.className = 'mini-indicator good';
+                } else if (country.inflation >= 0.5 && country.inflation <= 5) {
+                    inflationElement.className = 'mini-indicator warning';
+                } else {
+                    inflationElement.className = 'mini-indicator danger';
+                }
+            }
+
+            // 失業率指標顏色
+            const unemploymentElement = document.getElementById('current-unemployment-mini');
+            if (unemploymentElement) {
+                if (country.unemployment <= 5) {
+                    unemploymentElement.className = 'mini-indicator good';
+                } else if (country.unemployment <= 8) {
+                    unemploymentElement.className = 'mini-indicator warning';
+                } else {
+                    unemploymentElement.className = 'mini-indicator danger';
+                }
+            }
+
+            // 民眾信心指標顏色
+            const confidenceElement = document.getElementById('current-confidence-mini');
+            if (confidenceElement) {
+                if (country.confidence >= 70) {
+                    confidenceElement.className = 'mini-indicator good';
+                } else if (country.confidence >= 50) {
+                    confidenceElement.className = 'mini-indicator warning';
+                } else {
+                    confidenceElement.className = 'mini-indicator danger';
+                }
+            }
+
+            // 財政赤字指標顏色
+            const deficitElement = document.getElementById('current-deficit-mini');
+            if (deficitElement) {
+                if (country.fiscalDeficit > 8) {
+                    deficitElement.className = 'mini-indicator danger';
+                } else if (country.fiscalDeficit > 4) {
+                    deficitElement.className = 'mini-indicator warning';
+                } else {
+                    deficitElement.className = 'mini-indicator good';
+                }
+            }
+        }
+
+        function updateSkillDisplay() {
+            const config = countryConfigs[selectedCountry];
+            const country = gameState.countries[selectedCountry];
+            
+            // 更新技能信息
+            document.getElementById('skillIcon').textContent = config.skill.icon;
+            document.getElementById('skillName').textContent = config.skill.name;
+            document.getElementById('skillDescription').textContent = config.skill.description;
+            
+            // 更新冷卻狀態
+            const skillCard = document.getElementById('skillCard');
+            const cooldownElement = document.getElementById('skillCooldown');
+            const useSkillBtn = document.getElementById('useSkillBtn');
+            const skillControls = document.getElementById('skillControls');
+            
+            if (country.skillCooldown === 0) {
+                skillCard.className = 'skill-card ready';
+                cooldownElement.textContent = '準備就緒';
+                cooldownElement.className = 'skill-cooldown ready';
+                useSkillBtn.disabled = false;
+                useSkillBtn.textContent = '發動技能';
+            } else {
+                skillCard.className = 'skill-card cooldown';
+                cooldownElement.textContent = '冷卻中 (' + country.skillCooldown + '季)';
+                cooldownElement.className = 'skill-cooldown on-cooldown';
+                useSkillBtn.disabled = true;
+                useSkillBtn.textContent = '冷卻中';
+            }
+            
+            // 更新目標選擇器
+            const targetSelector = document.getElementById('targetCountry');
+            if (config.skill.hasTarget) {
+                skillControls.style.display = 'flex';
+                // 清空並重新填充選項
+                targetSelector.innerHTML = '';
+                
+                Object.keys(countryConfigs).forEach(code => {
+                    if (code !== selectedCountry) {
+                        const option = document.createElement('option');
+                        option.value = code;
+                        option.textContent = `${countryConfigs[code].flag} ${countryConfigs[code].name}`;
+                        targetSelector.appendChild(option);
+                    }
+                });
+            } else {
+                skillControls.innerHTML = `<button class="btn-skill" id="useSkillBtn">${useSkillBtn.textContent}</button>`;
+                // 重新綁定事件
+                document.getElementById('useSkillBtn').addEventListener('click', useSkill);
+            }
+        }
+
+        function updateOtherCountriesDisplay() {
+            // 更新所有AI國家的公開指標
+            Object.keys(countryConfigs).forEach(countryCode => {
+                if (countryCode !== selectedCountry) {
+                    const country = gameState.countries[countryCode];
+                    const gdpElement = document.getElementById(`${countryCode.toLowerCase()}-gdp-value-mini`);
+                    const inflationElement = document.getElementById(`${countryCode.toLowerCase()}-inflation-value-mini`);
+                    
+                    if (gdpElement) gdpElement.textContent = country.gdp.toFixed(1) + '%';
+                    if (inflationElement) inflationElement.textContent = country.inflation.toFixed(1) + '%';
+                }
+            });
+            
+            updateMiniIndicatorColors();
+        }
+
+        // ===== 修改原有函數以適應多國系統 =====
+        function updateInternationalDashboard() {
+            // 更新當前玩家國家的所有5個指標數值
+            const playerCountry = gameState.countries[selectedCountry];
+            const allIndicators = ['gdp', 'inflation', 'unemployment', 'confidence', 'deficit'];
+            
+            allIndicators.forEach(indicator => {
+                const valueElement = document.getElementById(`current-${indicator}-value`);
+                if (valueElement) {
+                    let value;
+                    switch(indicator) {
+                        case 'gdp':
+                            value = playerCountry.gdp.toFixed(1) + '%';
+                            break;
+                        case 'inflation':
+                            value = playerCountry.inflation.toFixed(1) + '%';
+                            break;
+                        case 'unemployment':
+                            value = playerCountry.unemployment.toFixed(1) + '%';
+                            break;
+                        case 'confidence':
+                            value = playerCountry.confidence.toFixed(0);
+                            break;
+                        case 'deficit':
+                            value = playerCountry.fiscalDeficit.toFixed(1) + '%';
+                            break;
+                    }
+                    valueElement.textContent = value;
+                }
+            });
+            
+            // 更新其他國家顯示
+            updateOtherCountriesDisplay();
+            updateCurrentCountryIndicatorColors();
+        }
+
+        function updateMiniIndicatorColors() {
+            // 更新所有國家的指標顏色
+            Object.keys(countryConfigs).forEach(countryCode => {
+                const country = gameState.countries[countryCode];
+                const prefix = countryCode === selectedCountry ? 'current' : countryCode.toLowerCase();
+                
+                const gdpElement = document.getElementById(`${prefix}-gdp-mini`);
+                if (gdpElement) {
+                    if (country.gdp >= 3) {
+                        gdpElement.className = 'mini-indicator good';
+                    } else if (country.gdp >= 1) {
+                        gdpElement.className = 'mini-indicator warning';
+                    } else {
+                        gdpElement.className = 'mini-indicator danger';
+                    }
+                }
+
+                const inflationElement = document.getElementById(`${prefix}-inflation-mini`);
+                if (inflationElement) {
+                    if (country.inflation >= 1.5 && country.inflation <= 3.5) {
+                        inflationElement.className = 'mini-indicator good';
+                    } else if (country.inflation >= 0.5 && country.inflation <= 5) {
+                        inflationElement.className = 'mini-indicator warning';
+                    } else {
+                        inflationElement.className = 'mini-indicator danger';
+                    }
+                }
+                
+                // 只為玩家國家更新額外指標顏色
+                if (countryCode === selectedCountry) {
+                    const unemploymentElement = document.getElementById(`${prefix}-unemployment-mini`);
+                    if (unemploymentElement) {
+                        if (country.unemployment <= 5) {
+                            unemploymentElement.className = 'mini-indicator good';
+                        } else if (country.unemployment <= 8) {
+                            unemploymentElement.className = 'mini-indicator warning';
+                        } else {
+                            unemploymentElement.className = 'mini-indicator danger';
+                        }
+                    }
+
+                    const confidenceElement = document.getElementById(`${prefix}-confidence-mini`);
+                    if (confidenceElement) {
+                        if (country.confidence >= 70) {
+                            confidenceElement.className = 'mini-indicator good';
+                        } else if (country.confidence >= 50) {
+                            confidenceElement.className = 'mini-indicator warning';
+                        } else {
+                            confidenceElement.className = 'mini-indicator danger';
+                        }
+                    }
+
+                    const deficitElement = document.getElementById(`${prefix}-deficit-mini`);
+                    if (deficitElement) {
+                        if (country.fiscalDeficit > 8) {
+                            deficitElement.className = 'mini-indicator danger';
+                        } else if (country.fiscalDeficit > 4) {
+                            deficitElement.className = 'mini-indicator warning';
+                        } else {
+                            deficitElement.className = 'mini-indicator good';
+                        }
+                    }
+                }
+            });
+        }
+
+        function endQuarter() {
+            gameState.quarterProgress = 0;
+            gameState.currentQuarter++;
+            
+            // 日本精密製造每季獎勵
+            updateJapanQuarterlyBonus();
+            
+            // 更新技能冷卻
+            for (let countryCode in gameState.countries) {
+                const country = gameState.countries[countryCode];
+                if (country.skillCooldown > 0) {
+                    country.skillCooldown--;
+                }
+            }
+            
+            // 更新制裁效果
+            updateSanctionEffects();
+            
+            updateSkillDisplay();
+
+            const quarterElement = document.getElementById('currentQuarter');
+            if (quarterElement) quarterElement.textContent = gameState.currentQuarter;
+
+            // 突發事件機率
+            let eventProbability = 0.6;
+            
+            const playerCountry = gameState.countries[selectedCountry];
+            if (playerCountry.inflation > 6 || playerCountry.gdp < 0 || playerCountry.unemployment > 8 || playerCountry.confidence < 50) {
+                eventProbability = 0.8;
+                addEvent('[經濟預警] 經濟不穩定，突發事件風險上升', 'quarter-end');
+            }
+            
+            if (Math.random() < eventProbability) {
+                triggerRandomEvent();
+            }
+
+            addEvent('[季度結束] 第' + (gameState.currentQuarter-1) + '季結果', 'quarter-end');
+
+            // 每4季顯示年度報告
+            if ((gameState.currentQuarter - 1) % 4 === 0 && gameState.currentQuarter > 1) {
+                setTimeout(showYearlyReport, 1000);
+            }
+        }
+
+        // 日本每季度精密製造獎勵（增強）
+        function updateJapanQuarterlyBonus() {
+            if (selectedCountry === 'JPN') {
+                const jpn = gameState.countries['JPN'];
+                jpn.gdp += 0.15; // 從0.1提高到0.15
+                jpn.confidence += 2; // 從1提高到2
+                jpn.inflation += 0.05; // 新增：輕微通膨推動
+                
+                // 檢查政策加成期間
+                if (jpn.policyBoostDuration > 0) {
+                    jpn.policyBoostDuration--;
+                    jpn.gdp += 0.1; // 額外獎勵
+                    jpn.inflation += 0.1; // 額外通膨推動
+                    addEvent('[政策加成] 日本就業改革效果持續發揮，經濟持續改善', 'quarter-end');
+                }
+                
+                addEvent('[精密製造] 日本製造業持續技術進步，經濟穩定提升', 'quarter-end');
+            }
+        }
+
+        function showYearlyReport() {
+            gameState.isGamePaused = true;
+            
+            const reportDiv = document.createElement('div');
+            reportDiv.id = 'yearlyReport';
+            reportDiv.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center;';
+
+            const currentYear = Math.floor((gameState.currentQuarter - 1) / 4);
+            const playerCountry = gameState.countries[selectedCountry];
+            const config = countryConfigs[selectedCountry];
+            
+            reportDiv.innerHTML = `
+                <div style="background: white; border-radius: 20px; padding: 40px; max-width: 600px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <h1 style="color: #2c3e50; margin-bottom: 20px;">🏆 ${config.name}第${currentYear}年度報告</h1>
+                    <div style="margin: 20px 0;">
+                        <h3>${config.name}經濟表現</h3>
+                        <p>GDP成長率: ${playerCountry.gdp.toFixed(1)}%</p>
+                        <p>通膨率: ${playerCountry.inflation.toFixed(1)}%</p>
+                        <p>失業率: ${playerCountry.unemployment.toFixed(1)}%</p>
+                        <p>民眾信心: ${playerCountry.confidence.toFixed(0)}</p>
+                        <p>財政赤字: ${playerCountry.fiscalDeficit.toFixed(1)}%</p>
+                    </div>
+                    <div style="margin-top: 30px;">
+                        <button id="continueBtn" style="background: #27ae60; color: white; border: none; padding: 15px 30px; border-radius: 10px; margin-right: 15px; cursor: pointer;">🎯 進入下一年度</button>
+                        <button id="restartBtn" style="background: #3498db; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer;">🔄 重新開始</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(reportDiv);
+            
+            document.getElementById('continueBtn').addEventListener('click', function() {
+                continueToNextYear();
+            });
+            
+            document.getElementById('restartBtn').addEventListener('click', function() {
+                restartGame();
+            });
+        }
+
+        // ===== 經濟系統函數 =====
+        function getCrisisLevel(country) {
+            let crisisScore = 0;
+            
+            if (country.gdp < -3) crisisScore += 2;
+            if (country.unemployment > 10) crisisScore += 2;
+            if (country.confidence < 30) crisisScore += 2;
+            if (country.inflation > 8 || country.inflation < -1) crisisScore += 1;
+            if (country.fiscalDeficit > 15) crisisScore += 1;
+            
+            if (crisisScore >= 5) return 'severe';
+            if (crisisScore >= 3) return 'moderate';
+            if (crisisScore >= 1) return 'mild';
+            return 'stable';
+        }
+
+        function getPolicyEffectMultiplier(country) {
+            const crisisLevel = getCrisisLevel(country);
+            
+            switch(crisisLevel) {
+                case 'severe':
+                    return {
+                        fiscal: 1.8,
+                        monetary: 1.5,
+                        message: '危機時期，政策工具效果顯著增強'
+                    };
+                case 'moderate':
+                    return {
+                        fiscal: 1.4,
+                        monetary: 1.3,
+                        message: '經濟困難期，政策傳導更加有效'
+                    };
+                case 'mild':
+                    return {
+                        fiscal: 1.2,
+                        monetary: 1.1,
+                        message: '經濟下行期，政策空間充裕'
+                    };
+                default:
+                    return {
+                        fiscal: 1.0,
+                        monetary: 1.0,
+                        message: ''
+                    };
+            }
+        }
+
+        function updateConfidence(country) {
+            const updateRate = 0.1 / 1000;
+            
+            if (country.fiscalDeficit > 8) {
+                country.confidence -= (country.fiscalDeficit - 8) * updateRate * 0.8;
+            } else if (country.fiscalDeficit < -1) {
+                country.confidence += updateRate * 0.3;
+            }
+            
+            if (country.inflation > 4) {
+                country.confidence -= (country.inflation - 4) * updateRate * 2;
+            } else if (country.inflation >= 1.5 && country.inflation <= 3.5 && country.inflationTrend < 0) {
+                country.confidence += updateRate * 4;
+            }
+            
+            if (country.gdp > 1.5) {
+                country.confidence += (country.gdp - 1.5) * updateRate * 2;
+            } else if (country.gdp < 0) {
+                country.confidence -= Math.abs(country.gdp) * updateRate * 1.5;
+            }
+            
+            if (country.unemployment > 6) {
+                country.confidence -= (country.unemployment - 6) * updateRate * 0.8;
+            } else if (country.unemploymentTrend < -0.1) {
+                country.confidence += updateRate * 3;
+            }
+            
+            if (country.confidence < 40 && country.gdp > 0) {
+                country.confidence += updateRate * 8;
+            }
+            
+            country.confidence = Math.max(10, Math.min(100, country.confidence));
+        }
+
+        function updateEconomicIndicators() {
+            for (let countryCode in gameState.countries) {
+                const country = gameState.countries[countryCode];
+                
+                const updateRate = 0.5 / 1000;
+                country.gdp += country.gdpTrend * updateRate;
+                country.inflation += country.inflationTrend * updateRate;
+                country.unemployment += country.unemploymentTrend * updateRate;
+
+                // 日本特殊機制：溫和的通縮體質（大幅調整）
+                if (countryCode === 'JPN') {
+                    // 只有在通膨高於3%時才有下降趨勢
+                    if (country.inflation > 3.0) {
+                        country.inflationTrend -= 0.02;
+                    } else if (country.inflation > 2.0) {
+                        country.inflationTrend -= 0.005; // 極輕微下降
+                    }
+                    // 通膨在0-2%範圍內時，不強制下降
+                    
+                    // 日本通縮防護機制
+                    if (country.inflation < 0.5) {
+                        country.inflationTrend += 0.01; // 自然回升機制
+                        country.confidence += 0.2; // 央行信譽加成
+                    }
+                }
+
+                // 通縮螺旋機制（調整後）
+                updateDeflationEffect(country, countryCode);
+
+                // GDP低基期反彈機制
+                if (country.gdp < -8) {
+                    country.gdpTrend += 0.1;
+                    
+                    if (Math.random() < 0.003) {
+                        showNewsAlert('政府緊急干預', '🚨 國會通過緊急經濟刺激法案！', 'economic-alert');
+                        addEvent('[自動干預] 政府啟動緊急經濟刺激計劃');
+                        country.gdpTrend += 0.8;
+                        country.fiscalDeficit += 3;
+                    }
+                }
+
+                // 財政赤字自然調整
+                if (country.gdp > 0) {
+                    country.fiscalDeficit -= country.gdp * updateRate * 0.2;
+                }
+
+                // 加入隨機波動
+                const volatility = 0.005;
+                country.gdp += (Math.random() - 0.5) * volatility;
+                country.inflation += (Math.random() - 0.5) * volatility;
+                country.unemployment += (Math.random() - 0.5) * volatility;
+
+                // 更新民眾信心
+                updateConfidence(country);
+
+                // 限制範圍
+                country.gdp = Math.max(-10, Math.min(15, country.gdp));
+                country.inflation = Math.max(-2, country.inflation);
+                country.unemployment = Math.max(1, Math.min(25, country.unemployment));
+                country.fiscalDeficit = Math.max(-5, Math.min(50, country.fiscalDeficit));
+            }
+
+            // 執行被動技能
+            updatePassiveSkills();
+
+            updateInternationalDashboard();
+            updateEmergencyToolDisplay();
+        }
+
+        // 被動技能系統
+        function updatePassiveSkills() {
+            // 中國被動：商業間諜
+            updateChinaCommercialEspionage();
+            
+            // 美國被動：全球影響力
+            updateUSAGlobalInfluence();
+        }
+
+        // 中國被動技能：商業間諜
+        function updateChinaCommercialEspionage() {
+            const china = gameState.countries['CHN'];
+            let hasGrowthBonus = false;
+            
+            // 檢查其他國家的GDP成長
+            Object.keys(gameState.countries).forEach(countryCode => {
+                if (countryCode !== 'CHN') {
+                    const otherCountry = gameState.countries[countryCode];
+                    
+                    // 如果其他國家GDP趨勢為正且超過1%
+                    if (otherCountry.gdpTrend > 1.0) {
+                        // 20%機率觸發商業間諜效果
+                        if (Math.random() < 0.2) {
+                            const espionageBonus = otherCountry.gdpTrend * 0.15; // 獲得15%的成長效應
+                            china.gdp += espionageBonus;
+                            china.gdpTrend += espionageBonus * 0.3;
+                            hasGrowthBonus = true;
+                            
+                            // 低機率顯示提示
+                            if (Math.random() < 0.05) {
+                                addEvent(`[商業間諜] 中國從${gameState.countries[countryCode].name}的經濟成長中獲益`, 'quarter-end');
+                                if (selectedCountry === 'CHN') {
+                                    showNewsAlert('技術學習', '🕵️ 透過商業合作獲得技術溢出效益！', 'quarter-report');
+                                }
+                            }
+                            return; // 每次更新只觸發一次
+                        }
+                    }
+                }
+            });
+        }
+
+        // 美國被動技能：全球影響力
+        function updateUSAGlobalInfluence() {
+            const usa = gameState.countries['USA'];
+            
+            // 檢查美國通膨是否在上升
+            if (usa.inflationTrend > 0.5) {
+                const influenceStrength = Math.min(usa.inflationTrend * 0.3, 1.0); // 影響力強度上限
+                
+                Object.keys(gameState.countries).forEach(countryCode => {
+                    if (countryCode !== 'USA') {
+                        const otherCountry = gameState.countries[countryCode];
+                        
+                        // 25%機率對其他國家產生通膨溢出
+                        if (Math.random() < 0.25) {
+                            const spilloverEffect = influenceStrength * 0.4; // 40%的溢出效應
+                            otherCountry.inflation += spilloverEffect;
+                            otherCountry.inflationTrend += spilloverEffect * 0.5;
+                            
+                            // 低機率顯示提示
+                            if (Math.random() < 0.03) {
+                                addEvent(`[全球影響力] 美國通膨壓力向${otherCountry.name}傳導`, 'quarter-end');
+                                if (selectedCountry === 'USA') {
+                                    showNewsAlert('全球傳導', '🌍 美國通膨壓力向全球傳導！', 'economic-alert');
+                                } else if (selectedCountry === countryCode) {
+                                    showNewsAlert('外部壓力', '📈 受到美國通膨壓力影響！', 'warning');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 大幅調整後的通縮螺旋機制（更溫和）
+        function updateDeflationEffect(country, countryCode) {
+            if (country.inflation < -0.5) { // 通縮閾值降低到-0.5%
+                const deflationSeverity = Math.abs(country.inflation + 0.5); // 給予0.5%的緩衝
+                
+                // 大幅減輕基礎通縮影響
+                country.gdpTrend -= deflationSeverity * 0.2; // 從0.4進一步降到0.2
+                country.gdp -= deflationSeverity * 0.02;     // 從0.05降到0.02
+                country.confidence -= deflationSeverity * 0.5; // 從1降到0.5
+                
+                // 嚴重通縮額外懲罰閾值提高到 < -2.0%
+                if (country.inflation < -2.0) { // 從-1.5提高到-2.0
+                    country.gdpTrend -= 0.2; // 從0.3降到0.2
+                    country.unemploymentTrend += 0.1; // 從0.2降到0.1
+                    
+                    if (Math.random() < 0.01) { // 進一步降低觸發頻率
+                        showNewsAlert('通縮螺旋', '🌪️ 經濟陷入通縮螺旋！但央行有應對經驗', 'warning');
+                        addEvent(`[通縮危機] ${country.name}面臨通縮挑戰，但政策工具仍然有效`, 'quarter-end');
+                    }
+                }
+            }
+            
+            // 日本通縮預警系統（大幅調整閾值）
+            if (countryCode === 'JPN' && selectedCountry === 'JPN') {
+                checkJapanDeflationWarning(country);
+            }
+        }
+
+        // 大幅調整日本通縮預警閾值
+        function checkJapanDeflationWarning(country) {
+            if (country.inflation < 0.2 && country.inflation >= -0.3) { // 從0.5提高到0.2，負值緩衝到-0.3
+                if (Math.random() < 0.005) { // 大幅降低提醒頻率
+                    showNewsAlert('通縮預警', '⚠️ 通膨偏低，但仍在可控範圍內', 'warning');
+                }
+            }
+            if (country.inflation < -0.8) { // 從-0.2提高到-0.8，給予更大緩衝
+                if (Math.random() < 0.01) { 
+                    showNewsAlert('通縮狀態', '🚨 日本進入通縮，但央行工具依然有效', 'economic-alert');
+                }
+            }
+        }
+
+        function updateQuarterProgress() {
+            const now = Date.now();
+            const deltaTime = now - gameState.lastUpdateTime;
+            gameState.lastUpdateTime = now;
+            gameState.quarterProgress += deltaTime;
+
+            const progressPercentage = (gameState.quarterProgress / gameState.quarterDuration) * 100;
+            const progressElement = document.getElementById('progressFill');
+            if (progressElement) progressElement.style.width = progressPercentage + '%';
+
+            const remainingTime = Math.max(0, gameState.quarterDuration - gameState.quarterProgress);
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
+            const timeElement = document.getElementById('timeRemaining');
+            if (timeElement) timeElement.textContent = minutes + ':' + seconds.toString().padStart(2, '0');
+
+            if (gameState.quarterProgress >= gameState.quarterDuration) {
+                endQuarter();
+            }
+        }
+
+        // ===== 政策實施函數 =====
+        function implementPolicy() {
+            const country = gameState.countries[selectedCountry];
+            
+            // 檢查政策冷卻期
+            if (country.policyCooldown > 0) {
+                const remainingTime = Math.ceil(country.policyCooldown / 1000);
+                showNewsAlert('政策冷卻', `政策還在冷卻中，請等待 ${remainingTime} 秒`, 'warning');
+                return;
+            }
+            
+            const newInterestRate = parseFloat(document.getElementById('interestRate').value);
+            const newReserveRatio = parseInt(document.getElementById('reserveRatio').value);
+            const interestRateChange = newInterestRate - country.interestRate;
+            
+            // 計算政策成功機率
+            let successRate = Math.max(0.3, Math.min(0.95, country.confidence / 100));
+            if (country.fiscalDeficit > 12) {
+                successRate *= 0.9;
+            }
+            
+            const multiplier = getPolicyEffectMultiplier(country);
+            const policySuccess = Math.random() < successRate;
+            
+            if (policySuccess) {
+                // 政策成功
+                country.interestRate = newInterestRate;
+                country.reserveRatio = newReserveRatio;
+
+                if (interestRateChange !== 0) {
+                    let inflationEffect = interestRateChange * 2.0 * multiplier.monetary;
+                    let gdpEffect = interestRateChange * 1.0 * multiplier.monetary;
+                    let unemploymentEffect = interestRateChange * 0.8 * multiplier.monetary;
+                    
+                    // 日本政策效果增強（進一步調整）
+                    if (selectedCountry === 'JPN') {
+                        inflationEffect *= 2.0; // 從1.5回調到2.0，增強政策效果
+                        
+                        // 低通膨期間刺激政策加成（調整條件）
+                        if (country.inflation < 1.0 && interestRateChange < 0) { // 從0.5調整到1.0
+                            inflationEffect *= 2.2; // 從1.8提高到2.2
+                            gdpEffect *= 1.5;       // 維持1.3→1.5
+                            addEvent('[日本優勢] 低通膨期間貨幣政策效果大幅增強', 'policy-change');
+                        }
+                    }
+                    
+                    country.inflationTrend -= inflationEffect;
+                    country.gdpTrend -= gdpEffect;
+                    country.unemploymentTrend += unemploymentEffect;
+                }
+
+                let message = `[${countryConfigs[selectedCountry].name}] 央行政策成功實施：基準利率 ${newInterestRate}%`;
+                if (multiplier.message) {
+                    message += ` (${multiplier.message})`;
+                }
+                addEvent(message, 'policy-change');
+                country.confidence += 0.5;
+                
+            } else {
+                // 政策失敗邏輯保持不變
+                country.interestRate = newInterestRate;
+                country.reserveRatio = newReserveRatio;
+
+                if (interestRateChange !== 0) {
+                    country.inflationTrend -= interestRateChange * 1.0 * multiplier.monetary;
+                    country.gdpTrend -= interestRateChange * 0.5 * multiplier.monetary;
+                    country.unemploymentTrend += interestRateChange * 0.4 * multiplier.monetary;
+                    
+                    country.inflationTrend += (Math.random() - 0.5) * 0.5;
+                    country.gdpTrend += (Math.random() - 0.5) * 0.3;
+                }
+
+                addEvent(`[${countryConfigs[selectedCountry].name}] 央行政策效果不佳：市場信心不足影響政策傳導`, 'policy-change');
+                showNewsAlert('政策效果不佳', '由於民眾信心不足，政策效果大打折扣！', 'warning');
+                country.confidence -= 1.0;
+            }
+            
+            // 設定政策冷卻期（10秒）
+            country.policyCooldown = 10000;
+            updatePolicyCooldownDisplay();
+        }
+
+        function increaseGovernmentSpending() {
+            const country = gameState.countries[selectedCountry];
+            
+            if (country.policyCooldown > 0) {
+                const remainingTime = Math.ceil(country.policyCooldown / 1000);
+                showNewsAlert('政策冷卻', `政策還在冷卻中，請等待 ${remainingTime} 秒`, 'warning');
+                return;
+            }
+
+            if (country.govSpendingLevel >= 5) {
+                showNewsAlert('支出上限', '政府支出已達最高水平！', 'warning');
+                return;
+            }
+
+            let successRate = Math.max(0.3, Math.min(0.95, country.confidence / 100));
+            if (country.fiscalDeficit > 12) {
+                successRate *= 0.9;
+            }
+
+            const multiplier = getPolicyEffectMultiplier(country);
+            const policySuccess = Math.random() < successRate;
+            
+            if (policySuccess) {
+                country.govSpendingLevel += 1;
+                
+                let unemploymentEffect = 1.5 * multiplier.fiscal;
+                let gdpEffect = 0.5 * multiplier.fiscal;
+                let inflationEffect = 0.4;
+                
+                // 日本低通膨期間財政刺激加成（進一步增強）
+                if (selectedCountry === 'JPN') {
+                    if (country.inflation < 1.5) { // 從0.8調整到1.5，更早觸發
+                        unemploymentEffect *= 1.8; // 從1.5提高到1.8
+                        gdpEffect *= 1.8;          // 從1.5提高到1.8
+                        inflationEffect *= 2.2;    // 從1.8提高到2.2
+                        addEvent('[日本優勢] 低通膨期間財政刺激效果大幅增強', 'policy-change');
+                    }
+                }
+                
+                country.unemployment -= unemploymentEffect;
+                country.gdp += gdpEffect;
+                country.fiscalDeficit += 2.5;
+                
+                country.unemploymentTrend -= 0.5 * multiplier.fiscal;
+                country.gdpTrend += 0.3 * multiplier.fiscal;
+                country.inflationTrend += inflationEffect;
+                
+                updateSpendingLevelDisplay();
+                
+                let message = `[財政政策] 增加政府支出成功！失業率立即下降${unemploymentEffect.toFixed(1)}%，GDP立即提升${gdpEffect.toFixed(1)}%`;
+                if (multiplier.message) {
+                    message += ` (${multiplier.message})`;
+                }
+                addEvent(message, 'policy-change');
+                showNewsAlert('財政刺激', '🏛️ 政府支出增加！大規模就業計劃立即啟動', 'quarter-report');
+                
+            } else {
+                addEvent(`[財政政策] 增加政府支出遭到阻礙，效果有限`, 'policy-change');
+                showNewsAlert('政策受阻', '國會對增加支出存在分歧，效果打折！', 'warning');
+                
+                country.govSpendingLevel += 1;
+                country.unemployment -= 0.75 * multiplier.fiscal;
+                country.gdp += 0.25 * multiplier.fiscal;
+                country.fiscalDeficit += 2.5;
+                
+                country.unemploymentTrend -= 0.25 * multiplier.fiscal;
+                country.gdpTrend += 0.15 * multiplier.fiscal;
+                country.inflationTrend += 0.2;
+                
+                updateSpendingLevelDisplay();
+            }
+
+            country.policyCooldown = 10000;
+            updatePolicyCooldownDisplay();
+        }
+
+        function decreaseGovernmentSpending() {
+            const country = gameState.countries[selectedCountry];
+            
+            if (country.policyCooldown > 0) {
+                const remainingTime = Math.ceil(country.policyCooldown / 1000);
+                showNewsAlert('政策冷卻', `政策還在冷卻中，請等待 ${remainingTime} 秒`, 'warning');
+                return;
+            }
+
+            if (country.govSpendingLevel <= -3) {
+                showNewsAlert('支出下限', '政府支出已達最低水平！', 'warning');
+                return;
+            }
+
+            let successRate = Math.max(0.3, Math.min(0.95, country.confidence / 100));
+            if (country.fiscalDeficit > 12) {
+                successRate *= 0.9;
+            }
+
+            const multiplier = getPolicyEffectMultiplier(country);
+            const policySuccess = Math.random() < successRate;
+            
+            if (policySuccess) {
+                country.govSpendingLevel -= 1;
+                
+                country.unemployment += 1.5 * multiplier.fiscal;
+                country.gdp -= 0.5 * multiplier.fiscal;
+                country.fiscalDeficit -= 2.0;
+                
+                country.unemploymentTrend += 0.3 * multiplier.fiscal;
+                country.gdpTrend -= 0.2 * multiplier.fiscal;
+                country.inflationTrend -= 0.3;
+                
+                updateSpendingLevelDisplay();
+                
+                let message = `[財政政策] 減少政府支出成功！財政負擔減輕，但失業率立即上升${(1.5 * multiplier.fiscal).toFixed(1)}%`;
+                if (multiplier.message) {
+                    message += ` (${multiplier.message})`;
+                }
+                addEvent(message, 'policy-change');
+                showNewsAlert('財政緊縮', '💰 政府支出削減！財政狀況改善但就業立即受影響', 'quarter-report');
+                
+            } else {
+                addEvent(`[財政政策] 減少政府支出遭到反對，效果有限`, 'policy-change');
+                showNewsAlert('政策阻力', '工會和民眾反對削減支出！', 'warning');
+                
+                country.govSpendingLevel -= 1;
+                country.unemployment += 0.75 * multiplier.fiscal;
+                country.gdp -= 0.25 * multiplier.fiscal;
+                country.fiscalDeficit -= 2.0;
+                
+                country.unemploymentTrend += 0.15 * multiplier.fiscal;
+                country.gdpTrend -= 0.1 * multiplier.fiscal;
+                country.inflationTrend -= 0.15;
+                
+                updateSpendingLevelDisplay();
+            }
+
+            country.policyCooldown = 10000;
+            updatePolicyCooldownDisplay();
+        }
+
+        function emergencyFiscalStimulus() {
+            const country = gameState.countries[selectedCountry];
+            
+            if (country.emergencyUsed) {
+                showNewsAlert('工具已用', '緊急刺激工具已在本輪遊戲中使用過', 'warning');
+                return;
+            }
+            
+            if (getCrisisLevel(country) !== 'severe') {
+                showNewsAlert('條件不符', '僅在嚴重危機時可使用緊急刺激工具', 'warning');
+                return;
+            }
+            
+            country.unemployment -= 3.0;
+            country.gdp += 2.0;
+            country.fiscalDeficit += 8.0;
+            country.confidence += 10;
+            
+            country.emergencyUsed = true;
+            updateEmergencyToolDisplay();
+            
+            addEvent('[緊急措施] 啟動史無前例的經濟刺激計劃！', 'policy-change');
+            showNewsAlert('緊急刺激', '🚨 政府動用一切手段救市！', 'economic-alert');
+        }
+
+        function togglePause() {
+            gameState.isGamePaused = !gameState.isGamePaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (gameState.isGamePaused) {
+                pauseBtn.textContent = '恢復遊戲';
+                pauseBtn.className = 'btn-secondary';
+                addEvent('[系統] 遊戲已暫停');
+            } else {
+                pauseBtn.textContent = '暫停遊戲';
+                pauseBtn.className = 'btn-danger';
+                gameState.lastUpdateTime = Date.now();
+                addEvent('[系統] 遊戲已恢復');
+            }
+        }
+
+        function updatePolicyCooldown() {
+            const country = gameState.countries[selectedCountry];
+            if (country && country.policyCooldown > 0) {
+                country.policyCooldown -= 100;
+                updatePolicyCooldownDisplay();
+                updateSpendingLevelDisplay();
+            }
+        }
+
+        function updatePolicyCooldownDisplay() {
+            const country = gameState.countries[selectedCountry];
+            if (!country) return;
+            
+            const implementBtn = document.getElementById('implementBtn');
+            
+            if (country.policyCooldown > 0) {
+                const remainingSeconds = Math.ceil(country.policyCooldown / 1000);
+                implementBtn.textContent = `冷卻中 (${remainingSeconds}s)`;
+                implementBtn.disabled = true;
+                implementBtn.style.background = '#95a5a6';
+            } else {
+                implementBtn.textContent = '實施政策';
+                implementBtn.disabled = false;
+                implementBtn.style.background = 'linear-gradient(45deg, #3498db, #2980b9)';
+            }
+        }
+
+        function updateSpendingLevelDisplay() {
+            const country = gameState.countries[selectedCountry];
+            if (!country) return;
+            
+            const display = document.getElementById('spendingLevelDisplay');
+            
+            if (display) {
+                let label = '中性';
+                if (country.govSpendingLevel > 0) {
+                    label = `擴張 +${country.govSpendingLevel}`;
+                } else if (country.govSpendingLevel < 0) {
+                    label = `緊縮 ${country.govSpendingLevel}`;
+                }
+                display.textContent = label;
+                
+                const increaseBtn = document.getElementById('increaseSpendingBtn');
+                const decreaseBtn = document.getElementById('decreaseSpendingBtn');
+                
+                if (increaseBtn) {
+                    increaseBtn.disabled = (country.govSpendingLevel >= 5 || country.policyCooldown > 0);
+                }
+                if (decreaseBtn) {
+                    decreaseBtn.disabled = (country.govSpendingLevel <= -3 || country.policyCooldown > 0);
+                }
+            }
+        }
+
+        function updateEmergencyToolDisplay() {
+            const country = gameState.countries[selectedCountry];
+            if (!country) return;
+            
+            const emergencyBtn = document.getElementById('emergencyBtn');
+            
+            if (emergencyBtn) {
+                const crisisLevel = getCrisisLevel(country);
+                const canUse = crisisLevel === 'severe' && !country.emergencyUsed;
+                
+                emergencyBtn.disabled = !canUse;
+                emergencyBtn.style.display = crisisLevel === 'severe' ? 'block' : 'none';
+                
+                if (country.emergencyUsed) {
+                    emergencyBtn.textContent = '🚫 已使用緊急刺激';
+                    emergencyBtn.style.background = '#95a5a6';
+                } else if (canUse) {
+                    emergencyBtn.textContent = '🚨 緊急財政刺激';
+                    emergencyBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+                }
+            }
+        }
+
+        // ===== 隨機事件系統 =====
+        function triggerRandomEvent() {
+            const events = [
+                {
+                    title: "全球股市暴跌",
+                    description: "投資者恐慌情緒蔓延，全球股市集體下跌",
+                    effect: function() {
+                        for (let code in gameState.countries) {
+                            const country = gameState.countries[code];
+                            country.gdp -= 1.5;
+                            country.confidence -= 10;
+                            country.unemployment += 0.5;
+                        }
+                    }
+                },
+                {
+                    title: "科技創新突破",
+                    description: "重大科技突破推動生產力提升",
+                    effect: function() {
+                        for (let code in gameState.countries) {
+                            const country = gameState.countries[code];
+                            country.gdp += 1.0;
+                            country.confidence += 8;
+                            country.unemployment -= 0.3;
+                        }
+                    }
+                },
+                {
+                    title: "能源價格飆升",
+                    description: "地緣政治緊張推高能源價格",
+                    effect: function() {
+                        for (let code in gameState.countries) {
+                            const country = gameState.countries[code];
+                            country.inflation += 2.0;
+                            country.gdp -= 0.8;
+                            country.confidence -= 5;
+                        }
+                    }
+                },
+                {
+                    title: "國際貿易協定簽署",
+                    description: "新的貿易協定促進全球貿易",
+                    effect: function() {
+                        for (let code in gameState.countries) {
+                            const country = gameState.countries[code];
+                            country.gdp += 0.8;
+                            country.confidence += 6;
+                            country.inflation -= 0.2;
+                        }
+                    }
+                }
+            ];
+            
+            const selectedEvent = events[Math.floor(Math.random() * events.length)];
+            selectedEvent.effect();
+            
+            showNewsAlert('突發事件', '🌍 ' + selectedEvent.title + ': ' + selectedEvent.description, 'global-event');
+            addEvent('[全球事件] ' + selectedEvent.title, 'quarter-end');
+        }
+
+        // ===== 工具函數 =====
+        function addEvent(message, type = 'normal') {
+            const eventsContainer = document.getElementById('eventsContainer');
+            if (!eventsContainer) return;
+            
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event-item ' + type;
+            const timestamp = new Date().toLocaleTimeString();
+            eventDiv.innerHTML = '<strong>[' + timestamp + ']</strong> ' + message;
+            eventsContainer.insertBefore(eventDiv, eventsContainer.firstChild);
+            
+            if (eventsContainer.children.length > 10) {
+                eventsContainer.removeChild(eventsContainer.lastChild);
+            }
+        }
+
+        function showNewsAlert(title, content, type = 'warning') {
+            const alertElement = document.getElementById('newsAlert');
+            const titleElement = document.getElementById('newsAlertTitle');
+            const contentElement = document.getElementById('newsAlertContent');
+            
+            if (alertElement && titleElement && contentElement) {
+                titleElement.textContent = title;
+                contentElement.textContent = content;
+                alertElement.className = 'news-alert ' + type;
+                alertElement.style.display = 'block';
+                
+                setTimeout(() => {
+                    closeNewsAlert();
+                }, 5000);
+            }
+        }
+
+        function closeNewsAlert() {
+            const alertElement = document.getElementById('newsAlert');
+            if (alertElement) alertElement.style.display = 'none';
+        }
+
+        function continueToNextYear() {
+            for (let countryCode in gameState.countries) {
+                const country = gameState.countries[countryCode];
+                country.yearlyGdp = [];
+                country.yearlyInflation = [];
+                country.yearlyUnemployment = [];
+                country.yearlyConfidence = [];
+            }
+
+            const reportElement = document.getElementById('yearlyReport');
+            if (reportElement) reportElement.remove();
+
+            gameState.isGamePaused = false;
+            gameState.lastUpdateTime = Date.now();
+            
+            showNewsAlert('新年度開始', '🎊 新年度開始！繼續你的央行治理挑戰！', 'quarter-report');
+            addEvent('[新年度] 新年度開始，繼續央行政策挑戰！');
+        }
+
+        function restartGame() {
+            if (confirm('確定要重新開始遊戲嗎？')) {
+                location.reload();
+            }
+        }
+
+        // ===== 頁面載入和清理 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌐 頁面載入完成，設置國家選擇...');
+            setupCountrySelection();
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+        });
+
+    </script>
+</body>
+</html>
+            
